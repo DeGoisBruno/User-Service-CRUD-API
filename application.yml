@@ -7,31 +7,31 @@ servers:
   - url: http://localhost:8080
     description: Generated server url
 paths:
-  /api/v1/userservice/update/{email}:
+  /api/v1/userservice/update:
     put:
       tags:
         - user-controller
       operationId: updateUser
       parameters:
         - name: email
-          in: path
+          in: query
           required: true
           schema:
             type: string
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/User'
+        required: true
       responses:
-        '400':
+        400:
           description: Bad Request
           content:
             '*/*':
               schema:
                 type: string
-        '200':
+        200:
           description: OK
           content:
             '*/*':
@@ -43,43 +43,43 @@ paths:
         - user-controller
       operationId: registerUser
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/User'
+        required: true
       responses:
-        '400':
+        400:
           description: Bad Request
           content:
             '*/*':
               schema:
                 type: string
-        '200':
+        200:
           description: OK
           content:
             '*/*':
               schema:
                 type: string
-  /api/v1/userservice/user/{email}:
+  /api/v1/userservice/user:
     get:
       tags:
         - user-controller
       operationId: getUserByEmail
       parameters:
         - name: email
-          in: path
+          in: query
           required: true
           schema:
             type: string
       responses:
-        '400':
+        400:
           description: Bad Request
           content:
             '*/*':
               schema:
                 type: string
-        '200':
+        200:
           description: OK
           content:
             '*/*':
@@ -91,13 +91,13 @@ paths:
         - user-controller
       operationId: getUser
       responses:
-        '400':
+        400:
           description: Bad Request
           content:
             '*/*':
               schema:
                 type: string
-        '200':
+        200:
           description: OK
           content:
             '*/*':
@@ -105,25 +105,24 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/User'
-  /api/v1/userservice/delete/{email}:
+  /api/v1/userservice/delete:
     delete:
       tags:
         - user-controller
       operationId: deleteUser
-      parameters:
-        - name: email
-          in: path
-          required: true
-          schema:
-            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
       responses:
-        '400':
+        400:
           description: Bad Request
           content:
             '*/*':
               schema:
                 type: string
-        '200':
+        200:
           description: OK
           content:
             '*/*':

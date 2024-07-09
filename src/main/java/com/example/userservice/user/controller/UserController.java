@@ -2,6 +2,7 @@ package com.example.userservice.user.controller;
 
 import com.example.userservice.user.model.User;
 import com.example.userservice.user.service.UserService;
+import jakarta.websocket.server.PathParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +27,9 @@ public class UserController {
         }
 
         // Get a user by email
-        @GetMapping("/user/{email}")
-        public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
+        @GetMapping("/user")
+        public ResponseEntity<User> getUserByEmail(
+                @PathParam("email") String email) {
             User user = userService.getUserByEmail(email);
             return ResponseEntity.ok(user);
         }
@@ -44,18 +46,18 @@ public class UserController {
         }
 
     // Update a user by email
-    @PutMapping(path = "/update/{email}")
+    @PutMapping(path = "/update")
     public ResponseEntity<String> updateUser(
-            @PathVariable("email") String email,
+            @RequestParam("email") String email,
             @RequestBody User updatedUser) {
-
         userService.updateUser(email, updatedUser);
         return ResponseEntity.ok("The user was updated successfully");
     }
 
     // Delete an user by email
-        @DeleteMapping(path = "delete/{email}")
-        public ResponseEntity<String> deleteUser(@PathVariable("email") String email) {
+        @DeleteMapping(path = "/delete")
+        public ResponseEntity<String> deleteUser(
+                @PathParam("email") String email) {
             userService.deleteUser(email);
             return ResponseEntity.ok("The user was successfully deleted");
         }
