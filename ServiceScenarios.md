@@ -205,3 +205,4 @@ UserRepository indicates that no user with ID 1 exists.
 
 ### Then
 Expect an `IllegalStateException` indicating user with ID 1 does not exist, and ensure `userRepository.deleteByEmail()` is not called.
+
