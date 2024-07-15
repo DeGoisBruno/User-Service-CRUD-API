@@ -1,15 +1,8 @@
-package com.example.userservice.user.model;
+package com.example.userservice.user.dto;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
-@Entity
-@Table(name = "`user`")
-public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+public class UserDTO {
     @NotNull(message = "First name is mandatory")
     @NotEmpty(message = "First name is mandatory")
     @Pattern(regexp = "^[A-Za-z ]+$", message = "First name must contain only letters")
@@ -32,26 +25,22 @@ public class User {
     @Size(min = 6, max = 15, message = "Password must be between 6 and 15 characters long")
     private String password;
 
-    public User() {
+    @NotEmpty(message = "Password confirmation is required")
+    private String confirmPassword;
+
+    public UserDTO() {
     }
 
     // Constructor
-    public User(String firstName, String lastName, String email, String password) {
+    public UserDTO(String firstName, String lastName, String email, String password, String confirmPassword) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.password = password;
+        this.confirmPassword = confirmPassword;
     }
 
     // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public String getFirstName() {
         return firstName;
     }
@@ -84,14 +73,11 @@ public class User {
         this.password = password;
     }
 
-    @Override
-    public String toString() {
-        return "User{" +
-                "id=" + id +
-                ", firstName='" + firstName + '\'' +
-                ", lastName='" + lastName + '\'' +
-                ", email='" + email + '\'' +
-                ", password='" + password + '\'' +
-                '}';
+    public String getConfirmPassword() {
+        return confirmPassword;
+    }
+
+    public void setConfirmPassword(String confirmPassword) {
+        this.confirmPassword = confirmPassword;
     }
 }

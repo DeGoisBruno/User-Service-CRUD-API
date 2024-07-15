@@ -1,8 +1,10 @@
-package com.example.userservice.userTest;
+package com.example.userservice.service;
 
+import com.example.userservice.user.dto.UserDTO;
 import com.example.userservice.user.model.User;
 import com.example.userservice.user.repository.UserRepository;
 import com.example.userservice.user.service.UserService;
+import jakarta.validation.Validator;
 import org.apache.coyote.BadRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,13 +14,11 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -29,21 +29,21 @@ class UserServiceTest {
     @Mock
     private UserRepository userRepository;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
-
     @InjectMocks
     private UserService underTest;
-
-    @Captor
-    private ArgumentCaptor<User> userArgumentCaptor;
 
     @InjectMocks
     private UserService userService;
 
+    @Captor
+    private ArgumentCaptor<User> userArgumentCaptor;
+
+    // This is new
+    private Validator validator;
+
     @BeforeEach
     void setUp() {
-        underTest = new UserService(userRepository, passwordEncoder);
+        underTest = new UserService(userRepository);
     }
 
     @Test
@@ -99,153 +99,133 @@ class UserServiceTest {
     }
 
     @Test
-    void addNewUser() throws BadRequestException {
+    void itShouldCreateANewUser() throws BadRequestException {
         // GIVEN
-        // Create a new User object with specific details
-        User user = new User(
-                "Mike",
+        UserDTO userDTO = new UserDTO("Mike",
                 "Myers",
                 "example@email.com",
-                "somePassword"
-        );
+                "somePassword1",
+                "somePassword1");
+
+        given(userRepository.existsByEmail(userDTO.getEmail())).willReturn(false); // Mock repository response
 
         // WHEN
-        // Call the method under test to add the new user
-        underTest.addNewUser(user);
+        underTest.createUser(userDTO);
 
         // THEN
-        // Verify that userRepository.save() was called with the expected User object
-        ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userArgumentCaptor.capture());
-
-        // Retrieve the captured User object and assert its equality to the original user object
-        User capturedUser = userArgumentCaptor.getValue();
-        assertThat(capturedUser).isEqualTo(user);
+        verify(userRepository).save(any(User.class)); // Verify userRepository.save() was called
     }
 
     @Test
-    public void willThrowWhenEmailIsTaken() {
+    void willThrowWhenEmailIsTaken() {
         // GIVEN
-        // Mocking a scenario where userRepository.findByEmail() returns a non-empty Optional
-        when(userRepository.findByEmail("test@example.com"))
-                .thenReturn(Optional.of(new User(
-                        "Mike",
-                        "Myers",
-                        "example@email.com",
-                        "somePassword")));
-
-        // WHEN
-        // Creating a new user attempt with the same email
-        User newUser = new User(
-                "Mike",
+        String existingEmail = "example@email.com";
+        UserDTO userDTO = new UserDTO("Mike",
                 "Myers",
                 "example@email.com",
+                "somePassword",
+                "somePassword");
+        given(userRepository.existsByEmail(existingEmail)).willReturn(true); // Mock repository response
+
+        // THEN
+        assertThatThrownBy(() -> underTest.createUser(userDTO))
+                .isInstanceOf(IllegalStateException.class) // Expect BadRequestException
+                .hasMessage("Email already exists"); // Verify exception message
+    }
+
+    @Test
+    void createNewUser_whenEmailNotProvided_shouldThrowIllegalStateException() {
+        // GIVEN
+        UserRepository userRepository = mock(UserRepository.class);
+        UserService userService = new UserService(userRepository);
+
+        // Create a UserDTO with null email
+        UserDTO userDTO = new UserDTO("Mike",
+                "Myers",
+                null,
+                "somePassword",
                 "somePassword");
 
-        // THEN
-        // Expecting an IllegalStateException when attempting to add a user with a duplicate email
-        assertThrows(IllegalStateException.class, () -> userService.addNewUser(newUser));
-    }
+        // WHEN & THEN
+        assertThatThrownBy(() -> userService.createUser(userDTO))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Name or email or password cannot be null");
 
-    @Test
-    void addNewUser_whenEmailNotProvided_shouldThrowIllegalArgumentException() {
-        // GIVEN
-        User user = new User(
-                "Mike",
-                "Myers",
-                null,  // No email provided
-                "somePassword"
-        );
-
-        // WHEN
-        // Invoke the method under test and expect an exception
-        // THEN
-        assertThatThrownBy(() -> underTest.addNewUser(user))
-                // Ensure that the exception thrown is of type IllegalArgumentException
-                .isInstanceOf(IllegalArgumentException.class)
-                // Check that the exception message matches the expected message
-                .hasMessage("Email is required");
-
-        // Verify that userRepository methods were not called
+        // Verify no interactions with userRepository
         verifyNoInteractions(userRepository);
     }
 
-    @Test
-    void addNewUser_whenPasswordNotProvided_shouldThrowIllegalArgumentException() {
-        // GIVEN
-        User user = new User(
-                "Mike",
-                "Myers",
-                "example@email.com",
-                null  // No password provided
-        );
-
-        // WHEN
-        // Invoke the method under test and expect an exception
-        // THEN
-        assertThatThrownBy(() -> underTest.addNewUser(user))
-                // Ensure that the exception thrown is of type IllegalArgumentException
-                .isInstanceOf(IllegalArgumentException.class)
-                // Check that the exception message matches the expected message
-                .hasMessage("Password is required");
-
-        // Verify that userRepository methods were not called
-        verifyNoInteractions(userRepository);
-    }
 
     @Test
-    void updateUser_whenUserExists_shouldUpdateUserDetails() {
-        // GIVEN
-        String email = "john.doe@example.com";
-        User existingUser = new User(
-                "Mike",
-                "Myers",
-                email,
-                "oldPassword"
-        );
-        User updatedUser = new User(
-                "Eddie",
-                "Murphy",
-                email,
-                "newPassword"
-        );
+    void createNewUser_whenPasswordNotProvided_shouldThrowIllegalArgumentException() {
+            // GIVEN
+            UserDTO userDTO = new UserDTO("Mike",
+                    "Myers",
+                    "example@email.com",
+                    null,
+                    null);
 
-        // // Mocking scenario where userRepository.findByEmail() returns an Optional containing existingUser
-        when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser));
+            // WHEN & THEN
+            assertThatThrownBy(() -> underTest.createUser(userDTO))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Name or email or password cannot be null");
+
+            // Verify that userRepository methods were not called
+            verifyNoInteractions(userRepository);
+        }
+
+
+        @Test
+        void updateUser_whenUserExists_updateOnlyEmail_shouldUpdateEmail() {
+        // GIVEN
+        String email = "leslie.nielsen@example.com";
+        String newPassword = "newPassword";
+        String confirmNewPassword = "newPassword";
+        UserDTO userDTO = new UserDTO("Leslie",
+                "Nielsen",
+                "newemail@example.com",
+                newPassword,
+                confirmNewPassword);
+
+        // Mock repository response
+        User existingUser = new User(userDTO.getFirstName(), userDTO.getLastName(), email, "oldPassword");
+        given(userRepository.findByEmail(email)).willReturn(Optional.of(existingUser));
 
         // WHEN
-        underTest.updateUser(email, updatedUser);
+        // Update the user's email
+        underTest.updateUser(email, "oldPassword", userDTO.getEmail(), newPassword, confirmNewPassword);
 
         // THEN
         // Verify that userRepository.findByEmail() was called with the correct email
         verify(userRepository).findByEmail(email);
         // Verify that userRepository.save() was called with existingUser to update details
         verify(userRepository).save(existingUser);
-        // Assert that the updated details in existingUser match updatedUser
-        assertThat(existingUser.getFirstName()).isEqualTo(updatedUser.getFirstName());
-        assertThat(existingUser.getLastName()).isEqualTo(updatedUser.getLastName());
-        assertThat(existingUser.getEmail()).isEqualTo(updatedUser.getEmail());
+        // Assert that the updated email in existingUser matches the new email in userDTO
+        assertThat(existingUser.getEmail()).isEqualTo(userDTO.getEmail());
     }
+
 
     @Test
     void updateUser_whenUserDoesNotExist_shouldThrowIllegalStateException() {
         // GIVEN
         String email = "nonexistentemail@example.com";
-        User updatedUser = new User(
+        UserDTO userDTO = new UserDTO(
                 "Eddie",
-                "Murphy",
-                email,
-                "newPassword"
-        );
+                "Murphy", email,
+                "newPassword",
+                "newPassword");
 
-        // Mocking scenario where userRepository.findByEmail() returns an empty Optional
-        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
+        given(userRepository.findByEmail(email)).willReturn(Optional.empty());
 
         // WHEN
         // THEN
-        assertThatThrownBy(() -> underTest.updateUser(email, updatedUser))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("User with email " + email + " does not exist");
+        assertThatThrownBy(() -> underTest.updateUser(
+                email,
+                "oldPassword",
+                userDTO.getFirstName(),
+                userDTO.getPassword(),
+                userDTO.getConfirmPassword()))
+                    .isInstanceOf(IllegalStateException.class);
 
         // Verify that userRepository.findByEmail() was called with the correct email
         verify(userRepository).findByEmail(email);

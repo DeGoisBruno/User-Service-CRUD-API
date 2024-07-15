@@ -7,7 +7,7 @@ servers:
   - url: http://localhost:8080
     description: Generated server url
 paths:
-  /api/v1/userservice/update:
+  /api/v1/userservice/update-user:
     put:
       tags:
         - user-controller
@@ -18,44 +18,46 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
-        required: true
+        - name: password
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: newEmail
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: newPassword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: confirmNewPassword
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
-        400:
-          description: Bad Request
-          content:
-            '*/*':
-              schema:
-                type: string
-        200:
+        '200':
           description: OK
           content:
             '*/*':
               schema:
                 type: string
-  /api/v1/userservice/register:
+  /api/v1/userservice/create-user:
     post:
       tags:
         - user-controller
-      operationId: registerUser
+      operationId: createUser
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
-        required: true
+              $ref: '#/components/schemas/UserDTO'
       responses:
-        400:
-          description: Bad Request
-          content:
-            '*/*':
-              schema:
-                type: string
-        200:
+        '200':
           description: OK
           content:
             '*/*':
@@ -73,13 +75,7 @@ paths:
           schema:
             type: string
       responses:
-        400:
-          description: Bad Request
-          content:
-            '*/*':
-              schema:
-                type: string
-        200:
+        '200':
           description: OK
           content:
             '*/*':
@@ -91,13 +87,7 @@ paths:
         - user-controller
       operationId: getUser
       responses:
-        400:
-          description: Bad Request
-          content:
-            '*/*':
-              schema:
-                type: string
-        200:
+        '200':
           description: OK
           content:
             '*/*':
@@ -110,19 +100,14 @@ paths:
       tags:
         - user-controller
       operationId: deleteUser
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: string
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
-        400:
-          description: Bad Request
-          content:
-            '*/*':
-              schema:
-                type: string
-        200:
+        '200':
           description: OK
           content:
             '*/*':
@@ -130,18 +115,61 @@ paths:
                 type: string
 components:
   schemas:
+    UserDTO:
+      type: object
+      required:
+        - confirmPassword
+        - email
+        - firstName
+        - lastName
+        - password
+      properties:
+        firstName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[A-Za-z ]+$'
+        lastName:
+          type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[A-Za-z ]+$'
+        email:
+          type: string
+          minLength: 0
+          maxLength: 100
+        password:
+          type: string
+          minLength: 6
+          maxLength: 15
+        confirmPassword:
+          type: string
     User:
       type: object
+      required:
+        - email
+        - firstName
+        - lastName
+        - password
       properties:
         id:
           type: integer
           format: int64
         firstName:
           type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[A-Za-z ]+$'
         lastName:
           type: string
+          minLength: 2
+          maxLength: 50
+          pattern: '^[A-Za-z ]+$'
         email:
           type: string
+          minLength: 0
+          maxLength: 100
         password:
           type: string
-
+          minLength: 6
+          maxLength: 15
