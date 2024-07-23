@@ -1,6 +1,6 @@
 package com.example.userservice.user.config;
 
-import com.example.userservice.user.model.User;
+import com.example.userservice.user.model.Users;
 import com.example.userservice.user.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -13,13 +13,13 @@ public class UserConfig {
     @Bean
     CommandLineRunner commandLineRunner(UserRepository repository) {
         return  args -> {
-            User user1 = new User(
+            Users users1 = new Users(
                     "Thomas",
                     "Hedlund",
                     "hedlund.thomas@email.com",
                     "somePassword1"
             );
-            User user2 = new User(
+            Users users2 = new Users(
                     "Julie",
                     "Christmas",
                     "juliexmas@email.com",
@@ -27,7 +27,7 @@ public class UserConfig {
             );
 
             // Save users to the repository
-            repository.saveAll(List.of(user1,user2));
+            repository.saveAll(List.of(users1, users2));
         };
     }
 }

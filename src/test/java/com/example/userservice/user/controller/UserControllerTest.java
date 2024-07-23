@@ -1,118 +1,153 @@
 package com.example.userservice.user.controller;
 
-import com.example.userservice.user.model.User;
+import com.example.userservice.user.model.Users;
 import com.example.userservice.user.service.UserService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import java.util.Collections;
-
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
-@WebMvcTest(UserController.class)
-public class UserControllerTest {
+class UserControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private UserService userService;
 
+    @InjectMocks
+    private UserController userController;
+
     @BeforeEach
-    public void setup() {
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    // Test for creating a new user
+    @Test
+    void testCreateUserSuccess() {
+        Users user = new Users();
+        user.setEmail("example@email.com");
+
+        doNothing().when(userService).createUser(any(Users.class));
+
+        ResponseEntity<String> response = userController.createUser(user);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals("The user was created successfully", response.getBody());
     }
 
     @Test
-    public void testGetUser() throws Exception {
-        // Mock data
-        User mockUser = new User("John", "Doe", "john.doe@example.com", "password");
+    void testCreateUserFailure() {
+        Users user = new Users();
+        user.setEmail("example@email.com");
 
-        when(userService.getUser()).thenReturn(Collections.singletonList(mockUser));
+        doThrow(new IllegalStateException("User already exists")).when(userService).createUser(any(Users.class));
 
-        // Perform GET request
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/userservice/list")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$[0].email").value(mockUser.getEmail()));
+        ResponseEntity<String> response = userController.createUser(user);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("User already exists", response.getBody());
+    }
+
+    // Test for retrieving a user by email
+    @Test
+    void testGetUserByEmailSuccess() {
+        Users user = new Users();
+        user.setEmail("degoisb@email.com");
+        user.setFirstName("Bruno");
+        user.setLastName("De Gois");
+        user.setPassword("somePassword1");
+
+        when(userService.getUserByEmail("degoisb@email.com")).thenReturn(user);
+
+        ResponseEntity<Users> response = userController.getUserByEmail("degoisb@email.com");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(user, response.getBody());
     }
 
     @Test
-    public void testGetUserByEmail() throws Exception {
-        // Mock data
-        String userEmail = "john.doe@example.com";
-        User mockUser = new User("John", "Doe", userEmail, "password");
+    void testGetUserByEmailNotFound() {
+        when(userService.getUserByEmail("example@email.com")).thenThrow(new IllegalStateException("User does not exist"));
 
-        when(userService.getUserByEmail(anyString())).thenReturn(mockUser);
+        ResponseEntity<Users> response = userController.getUserByEmail("example@email.com");
 
-        // Perform GET request
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/v1/userservice/user")
-                        .param("email", userEmail)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.email").value(mockUser.getEmail()));
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals(null, response.getBody());
     }
 
     @Test
-    public void testUpdateUser_ValidInput_ReturnsOk() throws Exception {
-        // Mock input
-        String email = "test@example.com";
-        String password = "password";
-        String newEmail = "new@example.com";
-        String newPassword = "newpassword";
-        String confirmNewPassword = "newpassword";
+    void testGetUserByEmailBadRequest() {
+        when(userService.getUserByEmail("example@email.com")).thenThrow(new IllegalStateException("Invalid email format"));
 
-        // Mock userService behavior
-        doNothing().when(userService).updateUser(email, password, newEmail, newPassword, confirmNewPassword);
+        ResponseEntity<Users> response = userController.getUserByEmail("example@email.com");
 
-        // Perform PUT request
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/v1/userservice/update-user")
-                        .param("email", email)
-                        .param("password", password)
-                        .param("newEmail", newEmail)
-                        .param("newPassword", newPassword)
-                        .param("confirmNewPassword", confirmNewPassword)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().string("User updated successfully"));
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(null, response.getBody());
+    }
 
-        // Verify userService method invocation
-        verify(userService, times(1)).updateUser(email, password, newEmail, newPassword, confirmNewPassword);
+    // Test for updating a user
+    @Test
+    void testUpdateUserSuccess() {
+        Users updatedUser = new Users();
+        updatedUser.setEmail("example@email.com");
+
+        doNothing().when(userService).updateUser(anyString(), any(Users.class));
+
+        ResponseEntity<String> response = userController.updateUser("example@email.com", updatedUser);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        assertEquals(null, response.getBody());
     }
 
     @Test
-    public void testDeleteUser() throws Exception {
-        // Mock input
-        String email = "test@example.com";
+    void testUpdateUserNotFound() {
+        Users updatedUser = new Users();
+        updatedUser.setEmail("example@email.com");
 
-        // Mock userService behavior
-        doNothing().when(userService).deleteUser(email);
+        doThrow(new IllegalArgumentException("User not found")).when(userService).updateUser(anyString(), any(Users.class));
 
-        // Perform DELETE request
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/v1/userservice/delete")
-                        .param("email", email)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.content().string("The user was successfully deleted"));
+        ResponseEntity<String> response = userController.updateUser("example@email.com", updatedUser);
 
-        // Verify userService method invocation
-        verify(userService, times(1)).deleteUser(email);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals(null, response.getBody());
     }
 
-    // Helper method to convert object to JSON string
-    private static String asJsonString(final Object obj) {
-        try {
-            return new ObjectMapper().writeValueAsString(obj);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Test
+    void testUpdateUserBadRequest() {
+        Users updatedUser = new Users();
+        updatedUser.setEmail("example@email.com");
+
+        doThrow(new IllegalArgumentException("Invalid update request")).when(userService).updateUser(anyString(), any(Users.class));
+
+        ResponseEntity<String> response = userController.updateUser("example@email.com", updatedUser);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals("Invalid update request", response.getBody());
+    }
+
+    // Test for deleting a user
+    @Test
+    void testDeleteUserSuccess() {
+        doNothing().when(userService).deleteUser("example@email.com");
+
+        ResponseEntity<String> response = userController.deleteUser("example@email.com");
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        assertEquals(null, response.getBody());
+    }
+
+    @Test
+    void testDeleteUserNotFound() {
+        doThrow(new IllegalArgumentException("User not found")).when(userService).deleteUser("example@email.com");
+
+        ResponseEntity<String> response = userController.deleteUser("example@email.com");
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertEquals("User not found", response.getBody());
     }
 }

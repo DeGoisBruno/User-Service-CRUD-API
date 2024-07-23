@@ -7,169 +7,145 @@ servers:
   - url: http://localhost:8080
     description: Generated server url
 paths:
-  /api/v1/userservice/update-user:
-    put:
+  /api/v1/userservice/users/{email}:
+    get:
       tags:
         - user-controller
-      operationId: updateUser
+      summary: Retrieve an existing user
+      operationId: getUserByEmail
       parameters:
         - name: email
-          in: query
+          in: path
+          description: User email
           required: true
-          schema:
-            type: string
-        - name: password
-          in: query
-          required: true
-          schema:
-            type: string
-        - name: newEmail
-          in: query
-          required: false
-          schema:
-            type: string
-        - name: newPassword
-          in: query
-          required: false
-          schema:
-            type: string
-        - name: confirmNewPassword
-          in: query
-          required: false
           schema:
             type: string
       responses:
         '200':
-          description: OK
+          description: User found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Users'
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Users'
+        '404':
+          description: A user with the specified email was not found
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/Users'
+    put:
+      tags:
+        - user-controller
+      summary: Update an existing user
+      operationId: updateUser
+      parameters:
+        - name: email
+          in: path
+          description: User email
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Users'
+      responses:
+        '400':
+          description: Bad Request
           content:
             '*/*':
               schema:
                 type: string
-  /api/v1/userservice/create-user:
+        '204':
+          description: The user was updated successfully
+          content:
+            '*/*':
+              schema:
+                type: string
+        '404':
+          description: User not found
+          content:
+            '*/*':
+              schema:
+                type: string
+    delete:
+      tags:
+        - user-controller
+      summary: Delete an existing user
+      operationId: deleteUser
+      parameters:
+        - name: email
+          in: path
+          description: User email
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: The user was deleted successfully
+          content:
+            '*/*':
+              schema:
+                type: string
+        '400':
+          description: Bad Request
+          content:
+            '*/*':
+              schema:
+                type: string
+  /api/v1/userservice/users:
     post:
       tags:
         - user-controller
+      summary: Creates a new user
       operationId: createUser
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UserDTO'
+              $ref: '#/components/schemas/Users'
       responses:
-        '200':
-          description: OK
+        '201':
+          description: The user was created successfully
           content:
             '*/*':
               schema:
                 type: string
-  /api/v1/userservice/user:
-    get:
-      tags:
-        - user-controller
-      operationId: getUserByEmail
-      parameters:
-        - name: email
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: OK
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/User'
-  /api/v1/userservice/list:
-    get:
-      tags:
-        - user-controller
-      operationId: getUser
-      responses:
-        '200':
-          description: OK
-          content:
-            '*/*':
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
-  /api/v1/userservice/delete:
-    delete:
-      tags:
-        - user-controller
-      operationId: deleteUser
-      parameters:
-        - name: email
-          in: query
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: OK
+        '400':
+          description: Bad Request
           content:
             '*/*':
               schema:
                 type: string
 components:
   schemas:
-    UserDTO:
-      type: object
-      required:
-        - confirmPassword
-        - email
-        - firstName
-        - lastName
-        - password
-      properties:
-        firstName:
-          type: string
-          minLength: 2
-          maxLength: 50
-          pattern: '^[A-Za-z ]+$'
-        lastName:
-          type: string
-          minLength: 2
-          maxLength: 50
-          pattern: '^[A-Za-z ]+$'
-        email:
-          type: string
-          minLength: 0
-          maxLength: 100
-        password:
-          type: string
-          minLength: 6
-          maxLength: 15
-        confirmPassword:
-          type: string
-    User:
+    Users:
       type: object
       required:
         - email
-        - firstName
-        - lastName
         - password
       properties:
         id:
           type: integer
           format: int64
-        firstName:
-          type: string
-          minLength: 2
-          maxLength: 50
-          pattern: '^[A-Za-z ]+$'
-        lastName:
-          type: string
-          minLength: 2
-          maxLength: 50
-          pattern: '^[A-Za-z ]+$'
         email:
           type: string
           minLength: 0
           maxLength: 100
         password:
           type: string
-          minLength: 6
-          maxLength: 15
+        firstName:
+          type: string
+          pattern: '^[A-Za-z ]*$'
+        lastName:
+          type: string
+          pattern: '^[A-Za-z ]*$'

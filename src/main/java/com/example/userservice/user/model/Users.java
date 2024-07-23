@@ -1,42 +1,37 @@
 package com.example.userservice.user.model;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
 @Entity
 @Table(name = "`user`")
-public class User {
+public class Users {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "First name is mandatory")
-    @NotEmpty(message = "First name is mandatory")
-    @Pattern(regexp = "^[A-Za-z ]+$", message = "First name must contain only letters")
-    @Size(min = 2, max = 50, message = "First name must be between {min} and {max} characters long")
-    private String firstName;
-
-    @NotNull(message = "Last name is mandatory")
-    @NotEmpty(message = "Last name is mandatory")
-    @Pattern(regexp = "^[A-Za-z ]+$", message = "Last name must contain only letters")
-    @Size(min = 2, max = 50, message = "Last name must be between {min} and {max} characters long")
-    private String lastName;
-
     @NotNull(message = "Email is mandatory")
-    @NotEmpty(message = "Email is mandatory")
     @Email(message = "Email should be valid")
     @Size(max = 100, message = "Email must be less than {max} characters long")
     private String email;
 
-    @NotEmpty(message = "Password is mandatory")
-    @Size(min = 6, max = 15, message = "Password must be between 6 and 15 characters long")
+    @NotNull(message = "Password is required")
     private String password;
 
-    public User() {
+    @Nullable
+    @Pattern(regexp = "^[A-Za-z ]*$", message = "First name must contain only letters")
+    private String firstName;
+
+    @Nullable
+    @Pattern(regexp = "^[A-Za-z ]*$", message = "Last name must contain only letters")
+    private String lastName;
+
+    public Users() {
     }
 
     // Constructor
-    public User(String firstName, String lastName, String email, String password) {
+    public Users(String firstName, String lastName, String email, String password) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;

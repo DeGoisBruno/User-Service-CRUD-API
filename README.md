@@ -2,13 +2,13 @@
 
 **Overview**
 
-The User Service System API provides endpoints for managing user data including creation, retrieval, update, and deletion operations.
+The User Service System API provides endpoints for managing users data including creation, retrieval, update, and deletion operations.
 
 **Features**
 
-User Registration: Create new user profiles securely.
+User Registration: Create new users profiles securely.
 
-User Management: Retrieve, update, and delete user information.
+User Management: Retrieve, update, and delete users information.
 
 Data Security: Passwords are securely hashed before storage.
 
@@ -27,7 +27,7 @@ IDE (e.g., IntelliJ IDEA, Eclipse)
 Clone the repository:
 
 
-_git clone https://github.com/your-username/user-service-api.git_
+_git clone https://github.com/your-username/users-service-api.git_
 
 
 Navigate to the project directory.

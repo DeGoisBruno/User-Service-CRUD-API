@@ -1,6 +1,6 @@
 package com.example.userservice.repository;
 
-import com.example.userservice.user.model.User;
+import com.example.userservice.user.model.Users;
 import com.example.userservice.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -10,7 +10,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @DataJpaTest
-class UserRepositoryTest {
+class UsersRepositoryTest {
 
     @Autowired
     private UserRepository underTest;
@@ -24,13 +24,13 @@ class UserRepositoryTest {
     void itShouldCheckIfEmailExists() {
         // GIVEN
         String email = "example@email.com";
-        User user = new User(
+        Users users = new Users(
                 "Mike",
                 "Myers",
                 email,
                 "password"
         );
-        underTest.save(user);
+        underTest.save(users);
 
         // WHEN
         boolean exists = underTest.existsByEmail(email);

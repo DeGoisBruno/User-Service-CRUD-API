@@ -1,5 +1,15 @@
-Swagger UI: http://localhost:8080/swagger-ui.html
-Swagger documentation: http://localhost:8080/v3/api-docs
-H2 Database: http://localhost:8080/h2-console/
+Swagger UI
+    URL: http://localhost:8080/swagger-ui.html
 
-YAML document: http://localhost:8080/v3/api-docs.yaml
+Swagger documentation:
+    URL: http://localhost:8080/v3/api-docs
+
+H2 Database
+    URL: http://localhost:8080/h2-console/
+    Driver Class: org.h2.Driver
+    JDBC URL: jdbc:h2:mem:testdb
+    User Name: sa
+    Password: password
+
+YAML document:
+    URL: http://localhost:8080/v3/api-docs.yaml

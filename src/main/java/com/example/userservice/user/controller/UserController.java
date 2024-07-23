@@ -1,15 +1,17 @@
 package com.example.userservice.user.controller;
 
-import com.example.userservice.user.dto.UserDTO;
-import com.example.userservice.user.model.User;
+import com.example.userservice.user.model.Users;
 import com.example.userservice.user.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping(path = "api/v1/userservice")
@@ -22,62 +24,88 @@ public class UserController {
         this.userService = userService;
     }
 
-    // Retrieves all users
-    @GetMapping("/list")
-    public List<User> getUser() {
-        return userService.getUser();
+
+    // Create a new user
+    @Operation(summary = "Creates a new user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "The user was created successfully"),
+            @ApiResponse(responseCode = "400", description = "Bad Request")
+    })
+    @PostMapping("/users")
+    public ResponseEntity<String> createUser(
+            @Valid @RequestBody Users user) {
+        try {
+            userService.createUser(user);
+            return ResponseEntity.status(HttpStatus.CREATED).body("The user was created successfully");
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
+
 
     // Get a user by email
-    @GetMapping("/user")
-    public ResponseEntity<User> getUserByEmail(
-            @RequestParam("email") String email) {
-        User user = userService.getUserByEmail(email);
-        return ResponseEntity.ok(user);
-    }
-
-    // Create a new user and add to the repository
-    @PostMapping("/create-user")
-    public ResponseEntity<String> createUser(@Valid @RequestBody UserDTO userDTO) {
+    @Operation(summary = "Retrieve an existing user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User found"),
+            @ApiResponse(responseCode = "400", description = "Bad Request"),
+            @ApiResponse(responseCode = "404", description = "A user with the specified email was not found")
+    })
+    @GetMapping("/users/{email}")
+    public ResponseEntity<Users> getUserByEmail(
+            @Parameter(name = "email", description = "User email", required = true, in = ParameterIn.PATH)
+            @PathVariable("email") String email) {
         try {
-            userService.createUser(userDTO);
-            return new ResponseEntity<>("User created successfully", HttpStatus.CREATED);
+            Users users = userService.getUserByEmail(email);
+            return ResponseEntity.ok(users);
         } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal Server Error: " + e.getMessage());
+            if (e.getMessage().contains("does not exist")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null); // 404 Not Found
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null); // 400 Bad Request
         }
     }
+
 
     // Update user email or password
-    @PutMapping("/update-user")
+    @Operation(summary = "Update an existing user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "The user was updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Bad Request"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @PutMapping("/users/{email}")
     public ResponseEntity<String> updateUser(
-            @RequestParam String email, // Current email of the user (required)
-            @RequestParam String password, // Current password of the user (required)
-            @RequestParam(required = false) String newEmail, // New email to update (optional)
-            @RequestParam(required = false) String newPassword, // New password to update (optional)
-            @RequestParam(required = false) String confirmNewPassword) { // Confirmation for the new password (optional)
+            @Parameter(name = "email", description = "User email", required = true, in = ParameterIn.PATH)
+            @PathVariable String email,
+            @Valid @RequestBody Users updatedUser) {
         try {
-            userService.updateUser(email, password, newEmail, newPassword, confirmNewPassword);
-            return ResponseEntity.ok("User updated successfully");
+            userService.updateUser(email, updatedUser);
+            return ResponseEntity.noContent().build(); // 204 No Content if update was successful
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal Server Error: " + e.getMessage());
+            if (e.getMessage().contains("User not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 Not Found
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage()); // 400 Bad Request
+            }
         }
     }
 
+
     // Delete a user by email
-    @DeleteMapping(path = "/delete")
+    @Operation(summary = "Delete an existing user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "The user was deleted successfully"),
+            @ApiResponse(responseCode = "400", description = "Bad Request")
+    })
+    @DeleteMapping("/users/{email}")
     public ResponseEntity<String> deleteUser(
-            @RequestParam("email") String email) {
+            @Parameter(name = "email", description = "User email", required = true, in = ParameterIn.PATH)
+            @PathVariable String email) {
         try {
             userService.deleteUser(email);
-            return ResponseEntity.ok("The user was successfully deleted");
+            return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Internal Server Error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 }

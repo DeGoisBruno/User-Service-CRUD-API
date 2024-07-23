@@ -1,13 +1,12 @@
 package com.example.userservice.user.service;
 
-import com.example.userservice.user.dto.UserDTO;
-import com.example.userservice.user.model.User;
+import com.example.userservice.user.model.Users;
 import com.example.userservice.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.regex.Pattern;
 
 @Service
 public class UserService {
@@ -19,97 +18,113 @@ public class UserService {
         this.userRepository = userRepository;
     }
 
-    // Retrieves all users from the repository
-    public List<User> getUser() {
-        return userRepository.findAll();
-    }
 
     // Retrieves a user from the repository by email
-    public User getUserByEmail(String email) {
+    public Users getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalStateException("User with email " + email + " does not exist"));
     }
 
 
-// Create a new user and add to the repository
-public void createUser(UserDTO userDTO) throws IllegalStateException {
-    if (userDTO == null || userDTO.getEmail() == null || userDTO.getPassword() == null) {
-        throw new IllegalStateException("Name or email or password cannot be null");
-    }
-
-    if (userRepository.existsByEmail(userDTO.getEmail())) {
-        throw new IllegalStateException("Email already exists");
-    }
-
-    User user = new User(
-            userDTO.getFirstName(),
-            userDTO.getLastName(),
-            userDTO.getEmail(),
-            userDTO.getPassword()  // No password encoding for illustration
-    );
-
-    userRepository.save(user);
-}
-
-
-    // Update a user password or email
+    // Create a new user and add to the repository
     @Transactional
-    public void updateUser(String email, String password, String newEmail, String newPassword, String confirmNewPassword) throws IllegalStateException {
-        // Retrieve the user from the database based on the provided email
-        User existingUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
-
-        // Verify if the provided password matches the user's current password
-        if (!existingUser.getPassword().equals(password)) {
-            throw new IllegalStateException("Incorrect password");
+    public void createUser(Users user) throws IllegalStateException {
+        // Validate email
+        if (user.getEmail() == null || user.getEmail().isEmpty()) {
+            throw new IllegalStateException("Email is required");
         }
 
-        // Flags to track if email or password has been changed
-        boolean emailChanged = false;
-        boolean passwordChanged = false;
+        // Validate password
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            throw new IllegalStateException("Password is required");
+        }
+        if (user.getPassword().length() < 8 || user.getPassword().length() > 20) {
+            throw new IllegalStateException("Password must be between 8 and 20 characters long");
+        }
 
-        // Check and update email if newEmail is provided and different from the current email
-        if (newEmail != null && !newEmail.isEmpty() && !newEmail.equals(existingUser.getEmail())) {
-            // Check if the new email already exists in the database
-            if (userRepository.existsByEmail(newEmail)) {
-                throw new IllegalStateException("Email already exists");
+        // Check if email already exists
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new IllegalStateException("Email already exists");
+        }
+
+        // Save the user
+        userRepository.save(user);
+    }
+
+    // Update existing user
+    @Transactional
+    public void updateUser(String email, Users updatedUser) {
+        // Fetch the existing user by email
+        Users existingUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        boolean isUpdated = false;
+
+        // Validate and update email if provided and not empty
+        if (updatedUser.getEmail() != null && !updatedUser.getEmail().isEmpty() &&
+                !updatedUser.getEmail().equals(existingUser.getEmail())) { // Added comparison
+            if (!isValidEmail(updatedUser.getEmail())) {
+                throw new IllegalArgumentException("Invalid email format");
             }
-            existingUser.setEmail(newEmail);
-            emailChanged = true; // Mark email as changed
+            if (userRepository.existsByEmail(updatedUser.getEmail())) {
+                throw new IllegalArgumentException("Email already exists");
+            }
+            existingUser.setEmail(updatedUser.getEmail());
+            isUpdated = true;
         }
 
-        // Check and update password if newPassword is provided
-        if (newPassword != null && !newPassword.isEmpty()) {
-            // Verify if newPassword matches the confirmNewPassword
-            if (!newPassword.equals(confirmNewPassword)) {
-                throw new IllegalStateException("New passwords do not match");
+        // Validate and update password if provided and not empty
+        if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
+            System.out.println("Password length: " + updatedUser.getPassword().length()); // Debugging line
+            if (updatedUser.getPassword().length() < 8 || updatedUser.getPassword().length() > 20) {
+                throw new IllegalArgumentException("Password must be between 8 and 20 characters");
             }
 
-            // Validate new password length
-            if (newPassword.length() < 6 || newPassword.length() > 15) {
-                throw new IllegalStateException("Password must be between 6 and 15 characters long");
+            existingUser.setPassword(updatedUser.getPassword());
+            isUpdated = true;
+        }
+
+        // Validate and update first name if provided
+        if (updatedUser.getFirstName() != null && !updatedUser.getFirstName().isEmpty() &&
+                !updatedUser.getFirstName().equals(existingUser.getFirstName())) {
+            if (!updatedUser.getFirstName().matches("^[a-zA-Z\\s]+$")) { // Simple validation
+                throw new IllegalArgumentException("First name can only contain letters and spaces");
             }
-
-            existingUser.setPassword(newPassword);
-            passwordChanged = true; // Mark password as changed
+            existingUser.setFirstName(updatedUser.getFirstName());
+            isUpdated = true;
         }
 
-        // If neither email nor password was changed, throw an exception
-        if (!emailChanged && !passwordChanged) {
-            throw new IllegalStateException("No fields updated");
+        // Validate and update last name if provided
+        if (updatedUser.getLastName() != null && !updatedUser.getLastName().isEmpty() &&
+                !updatedUser.getLastName().equals(existingUser.getLastName())) {
+            if (!updatedUser.getLastName().matches("^[a-zA-Z\\s]+$")) { // Simple validation
+                throw new IllegalArgumentException("Last name can only contain letters and spaces");
+            }
+            existingUser.setLastName(updatedUser.getLastName());
+            isUpdated = true;
         }
 
-        // Save the updated user entity to the database
+        if (!isUpdated) {
+            throw new IllegalArgumentException("No fields updated");
+        }
+
+        // Save the updated user
         userRepository.save(existingUser);
+    }
+
+    private boolean isValidEmail(String email) {
+        String emailRegex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
+        Pattern pattern = Pattern.compile(emailRegex);
+        return pattern.matcher(email).matches();
     }
 
 
     // Delete a user from the repository by email
+    @Transactional
     public void deleteUser(String email) {
-        boolean exists = userRepository.existsByEmail(email);
-        if (!exists) {
-            throw new IllegalStateException("User with email " + email + " does not exist");
-        }
-        userRepository.deleteByEmail(email);
+        Users user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("User with email " + email + " not found"));
+
+        userRepository.delete(user);
     }
 }
