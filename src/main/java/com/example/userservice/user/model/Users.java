@@ -20,10 +20,12 @@ public class Users {
     private String password;
 
     @Nullable
+    @Size(max = 50, message = "First name must be less than {max} characters long")
     @Pattern(regexp = "^[A-Za-z ]*$", message = "First name must contain only letters")
     private String firstName;
 
     @Nullable
+    @Size(max = 100, message = "Last name must be less than {max} characters long")
     @Pattern(regexp = "^[A-Za-z ]*$", message = "Last name must contain only letters")
     private String lastName;
 
